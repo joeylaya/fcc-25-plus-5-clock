@@ -5,9 +5,12 @@ function App() {
   const [breakLength, setBreakLength] = useState(5)
   const [sessionLength, setSessionLength] = useState(25)
 
-  const [state, setState] = useState<'reset' | 'paused' | 'running'>('reset')
-  const [timeLeft, setTimeLeft] = useState(25 * 60)
+  const [state, setState] = useState<'paused' | 'running'>('paused')
+
   const [timeType, setTimeType] = useState<'break' | 'session'>('session')
+  const [timeLeft, setTimeLeft] = useState(25 * 60)
+
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
 
   const getTimeLeft = () => {
     let minutes = Math.floor(timeLeft / 60)
@@ -35,42 +38,41 @@ function App() {
   }, [sessionLength, breakLength, timeType])
 
   // STATE CHANGES
-  let interval: NodeJS.Timeout
-
   const handleReset = () => {
+    setState('paused')
+
     const audio = document.getElementById('beep') as HTMLAudioElement
     audio.pause()
     audio.currentTime = 0
-    setState('paused')
-    setTimeType('session')
+
     setBreakLength(5)
     setSessionLength(25)
     setTimeLeft((timeType === 'break' ? breakLength : sessionLength) * 60)
+    
+    setTimeType('session')
   }
 
   const handleTimer = () => {
-    if (state === 'running') {
-      interval = setInterval(() => {
-        setTimeLeft((timeLeft) => {
-          if (timeLeft === 0) {
-            const audio = document.getElementById('beep') as HTMLAudioElement
-            audio.currentTime = 0
-            audio.play()
+    if (intervalId) clearInterval(intervalId)
+    setIntervalId(setInterval(() => {
+      setTimeLeft((timeLeft) => {
+        if (timeLeft === 0) {
+          const audio = document.getElementById('beep') as HTMLAudioElement
+          audio.currentTime = 0
+          audio.play()
 
-            clearInterval(interval)
-            setTimeType(timeType === 'break' ? 'session' : 'break')
-            return 0
-          }
-          return timeLeft - 1
-        })
-      }, 1000)
-    }
+          if (intervalId) clearInterval(intervalId)
+          setTimeType(timeType === 'break' ? 'session' : 'break')
+          return 0
+        }
+        return timeLeft - 1
+      })
+    }, 1000))
   }
 
   useEffect(() => {
-    if (state === 'reset') handleReset()
-    else if (state === 'running') handleTimer()
-    return () => clearInterval(interval) 
+    if (state === 'running') handleTimer()
+    if (intervalId) clearInterval(intervalId)
   }, [state, timeType])
 
   return (
@@ -110,16 +112,13 @@ function App() {
         <div id='controls'>
           <button
             id='start_stop'
-            onClick={() => {
-              if (state === 'running') setState('paused')
-              else (setState('running'))
-            }}
+            onClick={() => setState((prev) => prev === 'paused' ? 'running' : 'paused')}
           >
             Start / Stop
           </button>
           <button
             id='reset'
-            onClick={() => setState('reset')}
+            onClick={handleReset}
           >
             Reset
           </button>
