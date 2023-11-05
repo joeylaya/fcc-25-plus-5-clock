@@ -10,7 +10,7 @@ function App() {
   const [timeType, setTimeType] = useState<'break' | 'session'>('session')
   const [timeLeft, setTimeLeft] = useState(25 * 60)
 
-  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
+  const [intervalId, setIntervalId] = useState<number | null>(null)
 
   const getTimeLeft = () => {
     let minutes = Math.floor(timeLeft / 60)
@@ -54,7 +54,7 @@ function App() {
 
   const handleTimer = () => {
     if (intervalId) clearInterval(intervalId)
-    setIntervalId(setInterval(() => {
+    setIntervalId(window.setInterval(() => {
       setTimeLeft((timeLeft) => {
         if (timeLeft === 0) {
           const audio = document.getElementById('beep') as HTMLAudioElement
